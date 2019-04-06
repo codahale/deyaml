@@ -2,28 +2,14 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"os"
 
 	"github.com/codahale/deyaml/pkg/deyaml"
 )
 
-func input() (io.ReadCloser, error) {
-	if len(os.Args) > 1 {
-		return os.Open(os.Args[1])
-	}
-	return os.Stdin, nil
-}
-
 func main() {
-	f, err := input()
-	if err != nil {
-		panic(err)
-	}
-	defer func() { _ = f.Close() }()
-
-	// parse into k8s objects
-	objects, err := deyaml.DeserializeYAML(f)
+	// parse k8s objects
+	objects, err := deyaml.DeserializeYAML(os.Args[1:]...)
 	if err != nil {
 		panic(err)
 	}

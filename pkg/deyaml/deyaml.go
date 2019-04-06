@@ -1,51 +1,36 @@
 package deyaml
 
 import (
-	"bytes"
-	"io"
-	"io/ioutil"
 	"reflect"
 	"sort"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer/json"
-	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
-	"k8s.io/client-go/kubernetes/fake"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/cli-runtime/pkg/resource"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 )
 
-func DeserializeYAML(r io.Reader) ([]runtime.Object, error) {
-	// make a scheme with all of k8s's known types in it
-	scheme := runtime.NewScheme()
-	if err := fake.AddToScheme(scheme); err != nil {
+func DeserializeYAML(filenames ...string) ([]interface{}, error) {
+	b := resource.NewBuilder(genericclioptions.NewConfigFlags(true))
+	var objs []interface{}
+	res := b.WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
+		ContinueOnError().
+		DefaultNamespace().
+		FilenameParam(true, &resource.FilenameOptions{
+			Filenames: filenames,
+		}).
+		Local().
+		Do()
+	if err := res.Visit(func(info *resource.Info, err error) error {
+		objs = append(objs, info.Object)
+		return nil
+	}); err != nil {
 		return nil, err
-	}
-
-	// make a YAML deserializer
-	ser := yaml.NewDecodingSerializer(json.NewSerializer(json.DefaultMetaFactory, scheme, scheme, false))
-
-	// buffer input
-	buf, err := ioutil.ReadAll(r)
-	if err != nil {
-		return nil, err
-	}
-
-	// split YAML into objects
-	docs := bytes.Split(buf, []byte("\n---\n"))
-
-	// decode each object
-	objs := make([]runtime.Object, len(docs))
-	for i, doc := range docs {
-		obj, _, err := ser.Decode(doc, nil, nil)
-		if err != nil {
-			return nil, err
-		}
-		objs[i] = obj
 	}
 	return objs, nil
 }
 
-func CollectImports(objects []runtime.Object) ([]string, map[string]string) {
+func CollectImports(objects []interface{}) ([]string, map[string]string) {
 	// collect packages
 	m := map[string]bool{}
 	for _, object := range objects {
