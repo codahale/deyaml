@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"reflect"
 	"sort"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -58,6 +59,32 @@ func CollectImports(object runtime.Object) []string {
 	}
 	sort.Strings(packages)
 	return packages
+}
+
+func DedupeImports(packages []string) map[string]string {
+	// collect all packages by their last segment
+	byName := make(map[string][]string, len(packages))
+	for _, v := range packages {
+		segments := strings.Split(v, "/")
+		n := segments[len(segments)-1]
+		byName[n] = append(byName[n], v)
+	}
+
+	aliases := make(map[string]string, len(packages))
+	for _, packages := range byName {
+		// no need to alias unambiguous imports
+		if len(packages) == 1 {
+			aliases[packages[0]] = ""
+			continue
+		}
+
+		// use the last two path segments to dedupe
+		for _, v := range packages {
+			segments := strings.Split(v, "/")
+			aliases[v] = strings.Join(segments[len(segments)-2:], "")
+		}
+	}
+	return aliases
 }
 
 func collectPackages(v reflect.Value, m map[string]bool) {
