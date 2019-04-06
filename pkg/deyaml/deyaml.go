@@ -7,47 +7,34 @@ import (
 	"sort"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
+	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
 	"k8s.io/client-go/kubernetes/fake"
-	"sigs.k8s.io/yaml"
 )
 
 func DeserializeYAML(r io.Reader) (runtime.Object, error) {
-	// read YAML from stdin
-	y, err := ioutil.ReadAll(r)
-	if err != nil {
-		return nil, err
-	}
-
-	// convert YAML to JSON
-	j, err := yaml.YAMLToJSON(y)
-	if err != nil {
-		return nil, err
-	}
-
-	// convert decode JSON as unstructured data so we can read the metadata
-	got, _, err := unstructured.UnstructuredJSONScheme.Decode(j, nil, nil)
-	if err != nil {
-		return nil, err
-	}
-	gvk := got.GetObjectKind().GroupVersionKind()
-
 	// make a scheme with all of k8s's known types in it
 	scheme := runtime.NewScheme()
-	err = fake.AddToScheme(scheme)
+	if err := fake.AddToScheme(scheme); err != nil {
+		return nil, err
+	}
+
+	// make a YAML deserializer
+	ser := yaml.NewDecodingSerializer(json.NewSerializer(json.DefaultMetaFactory, scheme, scheme, false))
+
+	// buffer input
+	buf, err := ioutil.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}
 
-	// decode the JSON again now that we know the type
-	s := json.NewSerializer(json.DefaultMetaFactory, scheme, scheme, false)
-	object, _, err := s.Decode(j, &gvk, nil)
+	// deserialize object
+	obj, _, err := ser.Decode(buf, nil, nil)
 	if err != nil {
 		return nil, err
 	}
-	return object, nil
+	return obj, nil
 }
 
 func CollectImports(object runtime.Object) []string {
