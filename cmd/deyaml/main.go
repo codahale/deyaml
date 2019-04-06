@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/codahale/deyaml/pkg/deyaml"
-	"github.com/kr/pretty"
 )
 
 func main() {
@@ -29,11 +28,12 @@ func main() {
 	}
 
 	// find and print all the type package paths
+	packageAliases := map[string]string{}
 	if packages := deyaml.CollectImports(o); len(packages) > 0 {
-		packagesAndAliases := deyaml.DedupeImports(packages)
+		packageAliases = deyaml.DedupeImports(packages)
 		fmt.Println("import (")
 		for _, v := range packages {
-			if alias := packagesAndAliases[v]; alias != "" {
+			if alias := packageAliases[v]; alias != "" {
 				fmt.Printf("\t%s %#v\n", alias, v)
 			} else {
 				fmt.Printf("\t%#v\n", v)
@@ -44,5 +44,5 @@ func main() {
 	}
 
 	// pretty print the results
-	fmt.Printf("var data = %# v\n", pretty.Formatter(o))
+	fmt.Printf("var data = %# v\n", deyaml.Formatter(o, packageAliases))
 }

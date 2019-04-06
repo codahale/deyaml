@@ -5,10 +5,10 @@ go 1.12
 require (
 	github.com/gogo/protobuf v1.2.0 // indirect
 	github.com/golang/protobuf v1.3.1 // indirect
-	github.com/kr/pretty v0.1.0
+	github.com/kr/pretty v0.1.0 // indirect
+	github.com/kr/text v0.1.0
 	github.com/onsi/ginkgo v1.7.0 // indirect
 	github.com/onsi/gomega v1.4.3 // indirect
-	github.com/sanity-io/litter v1.1.0
 	golang.org/x/crypto v0.0.0-20190325154230-a5d413f7728c // indirect
 	golang.org/x/net v0.0.0-20190311183353-d8887717615a // indirect
 	golang.org/x/oauth2 v0.0.0-20190226205417-e64efc72b421 // indirect

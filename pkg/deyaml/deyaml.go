@@ -88,7 +88,7 @@ func DedupeImports(packages []string) map[string]string {
 }
 
 func collectPackages(v reflect.Value, m map[string]bool) {
-	if !v.IsValid() {
+	if !v.IsValid() || !nonzero(v) {
 		return
 	}
 
