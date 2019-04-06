@@ -37,7 +37,7 @@ func DeserializeYAML(r io.Reader) (runtime.Object, error) {
 	return obj, nil
 }
 
-func CollectImports(object runtime.Object) []string {
+func CollectImports(object runtime.Object) ([]string, map[string]string) {
 	m := map[string]bool{}
 	collectPackages(reflect.ValueOf(object), m)
 	packages := make([]string, 0, len(m))
@@ -45,10 +45,7 @@ func CollectImports(object runtime.Object) []string {
 		packages = append(packages, k)
 	}
 	sort.Strings(packages)
-	return packages
-}
 
-func DedupeImports(packages []string) map[string]string {
 	// collect all packages by their last segment
 	byName := make(map[string][]string, len(packages))
 	for _, v := range packages {
@@ -71,7 +68,7 @@ func DedupeImports(packages []string) map[string]string {
 			aliases[v] = strings.Join(segments[len(segments)-2:], "")
 		}
 	}
-	return aliases
+	return packages, aliases
 }
 
 func collectPackages(v reflect.Value, m map[string]bool) {

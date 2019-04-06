@@ -28,12 +28,11 @@ func main() {
 	}
 
 	// find and print all the type package paths
-	packageAliases := map[string]string{}
-	if packages := deyaml.CollectImports(o); len(packages) > 0 {
-		packageAliases = deyaml.DedupeImports(packages)
+	packages, aliases := deyaml.CollectImports(o)
+	if len(packages) > 0 {
 		fmt.Println("import (")
 		for _, v := range packages {
-			if alias := packageAliases[v]; alias != "" {
+			if alias := aliases[v]; alias != "" {
 				fmt.Printf("\t%s %#v\n", alias, v)
 			} else {
 				fmt.Printf("\t%#v\n", v)
@@ -44,5 +43,5 @@ func main() {
 	}
 
 	// pretty print the results
-	fmt.Printf("var data = %# v\n", deyaml.Formatter(o, packageAliases))
+	fmt.Printf("var data = %# v\n", deyaml.Formatter(o, aliases))
 }
