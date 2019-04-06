@@ -18,6 +18,7 @@ func DeserializeYAML(filenames ...string) ([]interface{}, error) {
 		DefaultNamespace().
 		FilenameParam(true, &resource.FilenameOptions{
 			Filenames: filenames,
+			Recursive: true,
 		}).
 		Local().
 		Do()
