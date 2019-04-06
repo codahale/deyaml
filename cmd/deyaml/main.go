@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"go/format"
 	"os"
 
 	"github.com/codahale/deyaml/pkg/deyaml"
@@ -15,20 +17,28 @@ func main() {
 	}
 
 	// find and print all the type package paths
+	buf := bytes.NewBuffer(nil)
+	_, _ = fmt.Fprintf(buf, "package example\n\n")
 	packages, aliases := deyaml.CollectImports(objects)
 	if len(packages) > 0 {
-		fmt.Println("import (")
+		_, _ = fmt.Fprintln(buf, "import (")
 		for _, v := range packages {
 			if alias := aliases[v]; alias != "" {
-				fmt.Printf("\t%s %#v\n", alias, v)
+				_, _ = fmt.Fprintf(buf, "\t%s %#v\n", alias, v)
 			} else {
-				fmt.Printf("\t%#v\n", v)
+				_, _ = fmt.Fprintf(buf, "\t%#v\n", v)
 			}
 		}
-		fmt.Println(")")
-		fmt.Println()
+		_, _ = fmt.Fprintf(buf, ")\n")
 	}
 
-	// pretty print the results
-	fmt.Printf("var objects = %# v\n\n", deyaml.Formatter(objects, aliases))
+	// pretty-print the objects
+	_, _ = fmt.Fprintf(buf, "var objects = %# v\n\n", deyaml.Formatter(objects, aliases))
+
+	// format the final source code
+	src, err := format.Source(buf.Bytes())
+	if err != nil {
+		panic(err)
+	}
+	fmt.Print(string(src))
 }
