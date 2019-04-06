@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/codahale/deyaml/pkg/deyaml"
@@ -9,8 +10,20 @@ import (
 )
 
 func main() {
+	var f io.ReadCloser
+	if len(os.Args) > 1 {
+		o, err := os.Open(os.Args[1])
+		if err != nil {
+			panic(err)
+		}
+		f = o
+	} else {
+		f = os.Stdin
+	}
+	defer func() { _ = f.Close() }()
+
 	// parse into k8s object
-	o, err := deyaml.DeserializeYAML(os.Stdin)
+	o, err := deyaml.DeserializeYAML(f)
 	if err != nil {
 		panic(err)
 	}
