@@ -8,16 +8,17 @@ import (
 	"github.com/codahale/deyaml/pkg/deyaml"
 )
 
-func main() {
-	var f io.ReadCloser
+func input() (io.ReadCloser, error) {
 	if len(os.Args) > 1 {
-		o, err := os.Open(os.Args[1])
-		if err != nil {
-			panic(err)
-		}
-		f = o
-	} else {
-		f = os.Stdin
+		return os.Open(os.Args[1])
+	}
+	return os.Stdin, nil
+}
+
+func main() {
+	f, err := input()
+	if err != nil {
+		panic(err)
 	}
 	defer func() { _ = f.Close() }()
 
