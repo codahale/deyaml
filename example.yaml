@@ -4,6 +4,13 @@ metadata:
   name: wordpress-mysql
   labels:
     app: wordpress
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordpress-mysql
+  labels:
+    app: wordpress
 spec:
   selector:
     matchLabels:

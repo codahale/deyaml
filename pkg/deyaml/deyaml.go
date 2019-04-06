@@ -1,6 +1,7 @@
 package deyaml
 
 import (
+	"bytes"
 	"io"
 	"io/ioutil"
 	"reflect"
@@ -13,7 +14,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 )
 
-func DeserializeYAML(r io.Reader) (runtime.Object, error) {
+func DeserializeYAML(r io.Reader) ([]runtime.Object, error) {
 	// make a scheme with all of k8s's known types in it
 	scheme := runtime.NewScheme()
 	if err := fake.AddToScheme(scheme); err != nil {
@@ -29,17 +30,28 @@ func DeserializeYAML(r io.Reader) (runtime.Object, error) {
 		return nil, err
 	}
 
-	// deserialize object
-	obj, _, err := ser.Decode(buf, nil, nil)
-	if err != nil {
-		return nil, err
+	// split YAML into objects
+	docs := bytes.Split(buf, []byte("\n---\n"))
+
+	// decode each object
+	objs := make([]runtime.Object, len(docs))
+	for i, doc := range docs {
+		obj, _, err := ser.Decode(doc, nil, nil)
+		if err != nil {
+			return nil, err
+		}
+		objs[i] = obj
 	}
-	return obj, nil
+	return objs, nil
 }
 
-func CollectImports(object runtime.Object) ([]string, map[string]string) {
+func CollectImports(objects []runtime.Object) ([]string, map[string]string) {
+	// collect packages
 	m := map[string]bool{}
-	collectPackages(reflect.ValueOf(object), m)
+	for _, object := range objects {
+		collectPackages(reflect.ValueOf(object), m)
+	}
+
 	packages := make([]string, 0, len(m))
 	for k := range m {
 		packages = append(packages, k)

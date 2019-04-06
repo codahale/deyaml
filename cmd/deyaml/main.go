@@ -21,14 +21,14 @@ func main() {
 	}
 	defer func() { _ = f.Close() }()
 
-	// parse into k8s object
-	o, err := deyaml.DeserializeYAML(f)
+	// parse into k8s objects
+	objects, err := deyaml.DeserializeYAML(f)
 	if err != nil {
 		panic(err)
 	}
 
 	// find and print all the type package paths
-	packages, aliases := deyaml.CollectImports(o)
+	packages, aliases := deyaml.CollectImports(objects)
 	if len(packages) > 0 {
 		fmt.Println("import (")
 		for _, v := range packages {
@@ -43,5 +43,5 @@ func main() {
 	}
 
 	// pretty print the results
-	fmt.Printf("var data = %# v\n", deyaml.Formatter(o, aliases))
+	fmt.Printf("var objects = %# v\n\n", deyaml.Formatter(objects, aliases))
 }
