@@ -17,7 +17,7 @@ type formatter struct {
 	packageAliases map[string]string
 }
 
-func Formatter(x interface{}, packageAliases map[string]string) (f fmt.Formatter) {
+func prettyFormatter(x interface{}, packageAliases map[string]string) (f fmt.Formatter) {
 	return formatter{v: reflect.ValueOf(x), quote: true, packageAliases: packageAliases}
 }
 
