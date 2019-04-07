@@ -65,7 +65,7 @@ func imports(objects []runtime.Object) map[string]string {
 	// collect packages
 	packages := map[string]bool{}
 	for _, object := range objects {
-		collectPackages(reflect.ValueOf(object), packages)
+		collectValue(reflect.ValueOf(object), packages)
 	}
 
 	// group packages by their last segment
@@ -94,26 +94,40 @@ func imports(objects []runtime.Object) map[string]string {
 	return aliases
 }
 
-func collectPackages(v reflect.Value, m map[string]bool) {
+func collectValue(v reflect.Value, m map[string]bool) {
+	// ignore values that won't end up as literals
 	if !v.IsValid() || !nonzero(v) {
 		return
 	}
 
-	if pkg := v.Type().PkgPath(); pkg != "" {
-		m[pkg] = true
-	}
+	// collect the value type
+	collectType(v.Type(), m)
 
+	switch v.Kind() {
 	// deref pointers and interfaces
-	if v.Kind() == reflect.Interface || v.Kind() == reflect.Ptr {
-		collectPackages(v.Elem(), m)
-	}
-
+	case reflect.Interface, reflect.Ptr:
+		collectValue(v.Elem(), m)
 	// iterate through struct fields
-	if v.Kind() == reflect.Struct {
-		i := 0
-		for i < v.NumField() {
-			collectPackages(v.Field(i), m)
-			i++
+	case reflect.Struct:
+		for i := 0; i < v.NumField(); i++ {
+			collectValue(v.Field(i), m)
 		}
+	// collect map k/v types
+	case reflect.Map:
+		if v.Len() > 0 {
+			collectType(v.Type().Key(), m)
+			collectType(v.Type().Elem(), m)
+		}
+	// collect list types
+	case reflect.Slice, reflect.Array:
+		if v.Len() > 0 {
+			collectType(v.Type().Elem(), m)
+		}
+	}
+}
+
+func collectType(t reflect.Type, m map[string]bool) {
+	if pkg := t.PkgPath(); pkg != "" {
+		m[pkg] = true
 	}
 }
