@@ -11,14 +11,14 @@ import (
 )
 
 type formatter struct {
-	v              reflect.Value
-	force          bool
-	quote          bool
-	packageAliases map[string]string
+	v        reflect.Value
+	force    bool
+	quote    bool
+	packages map[string]string
 }
 
-func prettyFormatter(x interface{}, packageAliases map[string]string) (f fmt.Formatter) {
-	return formatter{v: reflect.ValueOf(x), quote: true, packageAliases: packageAliases}
+func prettyFormatter(x interface{}, packages map[string]string) (f fmt.Formatter) {
+	return formatter{v: reflect.ValueOf(x), quote: true, packages: packages}
 }
 
 func (fo formatter) String() string {
@@ -45,7 +45,7 @@ func (fo formatter) passThrough(f fmt.State, c rune) {
 func (fo formatter) Format(f fmt.State, c rune) {
 	if fo.force || c == 'v' && f.Flag('#') && f.Flag(' ') {
 		w := tabwriter.NewWriter(f, 4, 4, 1, ' ', 0)
-		p := &printer{tw: w, Writer: w, visited: make(map[visit]int), packageAliases: fo.packageAliases}
+		p := &printer{tw: w, Writer: w, visited: make(map[visit]int), packageAliases: fo.packages}
 		p.printValue(fo.v, true, fo.quote)
 		_ = w.Flush()
 		return

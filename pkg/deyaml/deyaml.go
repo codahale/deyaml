@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"go/format"
 	"reflect"
-	"sort"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -39,20 +38,20 @@ func GenerateExample(objects []runtime.Object) (string, error) {
 	// find and print all the type package paths
 	buf := bytes.NewBuffer(nil)
 	_, _ = fmt.Fprintf(buf, "package example\n\n")
-	packages, aliases := imports(objects)
+	packages := imports(objects)
 	_, _ = fmt.Fprintf(buf, "import (\n")
 	_, _ = fmt.Fprintf(buf, "\t%#v\n", "k8s.io/apimachinery/pkg/runtime")
-	for _, v := range packages {
-		if alias := aliases[v]; alias != "" {
-			_, _ = fmt.Fprintf(buf, "\t%s %#v\n", alias, v)
+	for pkg, alias := range packages {
+		if alias != "" {
+			_, _ = fmt.Fprintf(buf, "\t%s %#v\n", alias, pkg)
 		} else {
-			_, _ = fmt.Fprintf(buf, "\t%#v\n", v)
+			_, _ = fmt.Fprintf(buf, "\t%#v\n", pkg)
 		}
 	}
 	_, _ = fmt.Fprintf(buf, ")\n")
 
 	// pretty-print the objects
-	_, _ = fmt.Fprintf(buf, "var objects = %# v\n\n", prettyFormatter(objects, aliases))
+	_, _ = fmt.Fprintf(buf, "var objects = %# v\n\n", prettyFormatter(objects, packages))
 
 	// format the final source code
 	src, err := format.Source(buf.Bytes())
@@ -62,42 +61,37 @@ func GenerateExample(objects []runtime.Object) (string, error) {
 	return string(src), nil
 }
 
-func imports(objects []runtime.Object) ([]string, map[string]string) {
+func imports(objects []runtime.Object) map[string]string {
 	// collect packages
-	m := map[string]bool{}
+	packages := map[string]bool{}
 	for _, object := range objects {
-		collectPackages(reflect.ValueOf(object), m)
+		collectPackages(reflect.ValueOf(object), packages)
 	}
 
-	packages := make([]string, 0, len(m))
-	for k := range m {
-		packages = append(packages, k)
-	}
-	sort.Strings(packages)
-
-	// collect all packages by their last segment
+	// group packages by their last segment
 	byName := make(map[string][]string, len(packages))
-	for _, v := range packages {
+	for v := range packages {
 		segments := strings.Split(v, "/")
 		n := segments[len(segments)-1]
 		byName[n] = append(byName[n], v)
 	}
 
+	// create aliases for dupes
 	aliases := make(map[string]string, len(packages))
-	for _, packages := range byName {
+	for _, dupes := range byName {
 		// no need to alias unambiguous imports
-		if len(packages) == 1 {
-			aliases[packages[0]] = ""
+		if len(dupes) == 1 {
+			aliases[dupes[0]] = ""
 			continue
 		}
 
-		// use the last two path segments to dedupe
-		for _, v := range packages {
+		// use the last path segments to dedupe
+		for _, v := range dupes {
 			segments := strings.Split(v, "/")
 			aliases[v] = strings.Join(segments[len(segments)-2:], "")
 		}
 	}
-	return packages, aliases
+	return aliases
 }
 
 func collectPackages(v reflect.Value, m map[string]bool) {
